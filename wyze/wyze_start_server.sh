@@ -41,6 +41,7 @@ echo "================================="
 # 设置CUDA环境变量
 export CUDA_VISIBLE_DEVICES=$CUDA_DEVICES
 
+export TORCHINDUCTOR_CACHE_DIR=~/.triton
 # 启动服务
 python -m sglang.launch_server \
    --model-path "$MODEL_PATH" \
@@ -52,8 +53,6 @@ python -m sglang.launch_server \
    --log-level info \
    --quantization fp8 \
    --enable-torch-compile \
-   --disable-radix-cache \
-   --decode-log-interval 1 \
    --enable-multimodal
 
 

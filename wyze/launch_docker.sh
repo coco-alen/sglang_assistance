@@ -1,37 +1,47 @@
 #!/bin/bash
 
-# 设置默认值
-IMAGE_NAME="eigen_vlm/yipin:wyze"
-CONTAINER_NAME="wyze"
-SCRIPT_PATH="./start_servers.sh"
-
-# 默认参数
+# ======================
+# Default configuration
+# ======================
+IMAGE_NAME="eigenai/wyze:251028"
+CONTAINER_NAME="eigen_wyze"
+SCRIPT_PATH="./eigen_serve"
 CUDA_DEVICES="0"
-MODEL_PATH="OpenGVLab/InternVL3-8B-Instruct"
-PORT="23334"
+MODEL_PATH="OpenGVLab/InternVL3_5-8B-Flash"
+PORT="23333"
+CACHE_DIR="/cache/huggingface"
 
-# 显示帮助信息
+# ======================
+# Help info
+# ======================
 show_help() {
-    echo "How to use: $0 [options]"
-    echo "Options:"
-    echo "  -i, --image IMAGE      Docker image name"
-    echo "  -c, --cuda DEVICES     CUDA devices (default: 0)"
-    echo "  -m, --model PATH       Model path (default: OpenGVLab/InternVL3_5-8B)"
-    echo "  -p, --port PORT        Port (default: 23334)"
-    echo "  -h, --help             Show help information"
+    echo "Usage: $0 [options]"
     echo ""
-    echo "示例:"
-    echo "  $0 -i myimage:latest -c 1 -p 8080"
+    echo "Options:"
+    echo "  -i, --image IMAGE        Docker image name"
+    echo "  -g, --gpu DEVICES       CUDA devices (default: 0)"
+    echo "  -m, --model PATH         Model path (default: OpenGVLab/InternVL3_5-8B)"
+    echo "  -p, --port PORT          Port (default: 23333)"
+    echo "  -c, --cache DIR          Huggingface cache directory (default: /cache/huggingface, should be absolute path)"
+    echo "  -h, --help               Show help information"
+    echo ""
+    echo "All other arguments will be passed directly to the container command."
+    echo ""
+    echo "Example:"
+    echo "  $0 -c 7 -m ./models/InternVL3_5-2B --decode-log-interval=1 --trust-remote-code"
 }
 
-# 解析参数
+# ======================
+# Parse arguments
+# ======================
+EXTRA_ARGS=()
 while [[ $# -gt 0 ]]; do
     case $1 in
         -i|--image)
             IMAGE_NAME="$2"
             shift 2
             ;;
-        -c|--cuda)
+        -g|--gpu)
             CUDA_DEVICES="$2"
             shift 2
             ;;
@@ -43,53 +53,88 @@ while [[ $# -gt 0 ]]; do
             PORT="$2"
             shift 2
             ;;
+        -c|--cache)
+            CACHE_DIR="$2"
+            shift 2
+            ;;
         -h|--help)
             show_help
             exit 0
             ;;
+        --*=*)  # e.g. --decode-log-interval=1
+            EXTRA_ARGS+=("$1")
+            shift
+            ;;
         *)
-            echo "Unknown parameter: $1"
-            show_help
-            exit 1
+            echo "⚠️ Unknown or extra parameter: $1"
+            EXTRA_ARGS+=("$1")
+            shift
             ;;
     esac
 done
 
-echo "Launch Docker Container..."
-echo "Image: $IMAGE_NAME"
-echo "CUDA Devices: $CUDA_DEVICES"
-echo "Model Path: $MODEL_PATH"
-echo "Port: $PORT"
+# ======================
+# Display configuration
+# ======================
+echo "=== Launch Docker Container ==="
+echo "Image:         $IMAGE_NAME"
+echo "Container:     $CONTAINER_NAME"
+echo "CUDA Devices:  $CUDA_DEVICES"
+echo "Model Path:    $MODEL_PATH"
+echo "Port:          $PORT"
+echo "Cache Dir:     $CACHE_DIR"
+echo "Extra Args:    ${EXTRA_ARGS[*]}"
+echo "================================"
 echo ""
 
-# 停止并删除已存在的同名容器
-docker stop $CONTAINER_NAME 2>/dev/null || true
-docker rm $CONTAINER_NAME 2>/dev/null || true
+# ======================
+# Cleanup old container
+# ======================
+docker stop "$CONTAINER_NAME" 2>/dev/null || true
+docker rm "$CONTAINER_NAME" 2>/dev/null || true
 
+# ======================
+# Prepare volumes
+# ======================
+DOCKER_CACHE_ARG="-v $CACHE_DIR:/root/.cache/huggingface"
 
-# 判断MODEL_PATH是否以OpenGVLab开头
 if [[ "$MODEL_PATH" == OpenGVLab* ]]; then
-    # 直接传递模型名
     DOCKER_MODEL_ARG="$MODEL_PATH"
     DOCKER_VOLUME_ARG=""
 else
-    # 需要挂载本地模型路径
-    # 获取绝对路径
     ABS_MODEL_PATH=$(readlink -f "$MODEL_PATH")
-    # 容器内路径
     CONTAINER_MODEL_PATH="/models/$(basename "$ABS_MODEL_PATH")"
     DOCKER_MODEL_ARG="$CONTAINER_MODEL_PATH"
     DOCKER_VOLUME_ARG="-v $ABS_MODEL_PATH:$CONTAINER_MODEL_PATH"
 fi
 
+# ======================
+# Compose container command
+# ======================
+CMD=(
+    "$SCRIPT_PATH"
+    -c "$CUDA_DEVICES"
+    -m "$DOCKER_MODEL_ARG"
+    -p "$PORT"
+    "${EXTRA_ARGS[@]}"
+)
+
+# ======================
+# Run container
+# ======================
+echo "Executing inside container:"
+printf '  %q ' "${CMD[@]}"
+echo -e "\n"
+
 docker run -d \
-    --name $CONTAINER_NAME \
+    --name "$CONTAINER_NAME" \
     --gpus all \
     --ipc=host \
     --network=host \
     $DOCKER_VOLUME_ARG \
-    $IMAGE_NAME \
-    bash -c "$SCRIPT_PATH -c $CUDA_DEVICES -m $DOCKER_MODEL_ARG -p $PORT"
+    $DOCKER_CACHE_ARG \
+    "$IMAGE_NAME" \
+    bash -c "$(printf '%q ' "${CMD[@]}")"
 
-echo "Container started with name: $CONTAINER_NAME"
-echo "View logs: docker logs -f $CONTAINER_NAME"
+echo "✅ Container started with name: $CONTAINER_NAME"
+echo "🪶 View logs: docker logs -f $CONTAINER_NAME"
