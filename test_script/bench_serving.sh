@@ -1,29 +1,35 @@
-# python -m sglang.bench_serving \
-#     --backend sglang-oai \
-#     --port 33212 \
-#     --dataset-name random \
-#     --random-input-len 8192 \
-#     --random-output-len 128 \
-#     --random-range-ratio 0.5 \
-#     --max-concurrency 64 \
-#     --num-prompts 500
-
-python -m sglang.bench_serving --backend sglang-oai-chat --dataset-name random \
-    --random-input-len 280 \
-    --random-output-len 270 \
-    --random-range-ratio 1 \
-    --host 0.0.0.0 \
-    --port 23333 \
-    --apply-chat-template \
-    --warmup-requests 5 \
-    --num-prompts 500 \
-    --max-concurrency 256
 
 
-# python3 -m sglang.bench_one_batch_server \
-#     --dataset-name random \
-#     --model Qwen/Qwen3-1.7B-FP8 \
-#     --base-url http://0.0.0.0:23333 \
-#     --batch-size 256 \
-#     --input-len 280 \
-#     --output-len 270
+# evalscope perf \
+#     --model OpenGVLab/InternVL3_5-8B-Flash \
+#     --url http://0.0.0.0:23333/v1/chat/completions \
+#     --parallel 64 \
+#     --number 500 \
+#     --api openai \
+#     --dataset random_vl \
+#     --min-tokens 64 \
+#     --max-tokens 64 \
+#     --prefix-length 0 \
+#     --min-prompt-length 350 \
+#     --max-prompt-length 350 \
+#     --image-width 448 \
+#     --image-height 448 \
+#     --image-format RGB \
+#     --image-num 1 \
+#     --tokenizer-path OpenGVLab/InternVL3_5-8B-Flash
+
+
+evalscope perf \
+    --parallel 64 \
+    --number 500 \
+    --model OpenGVLab/InternVL3_5-8B-Flash \
+    --url http://0.0.0.0:23333/v1/chat/completions \
+    --api openai \
+    --dataset random \
+    --max-tokens 64 \
+    --min-tokens 64 \
+    --prefix-length 0 \
+    --min-prompt-length 600 \
+    --max-prompt-length 600 \
+    --tokenizer-path OpenGVLab/InternVL3_5-8B-Flash \
+    --extra-args '{"ignore_eos": true}'
