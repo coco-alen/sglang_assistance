@@ -6,7 +6,7 @@ import concurrent.futures
 from tqdm import tqdm
 
 client = OpenAI(
-    base_url="http://0.0.0.0:23333/v1"
+    base_url="http://0.0.0.0:23334/v1"
 )
 def encode_image(image_path):
     # with open(image_path, "rb") as image_file:
@@ -38,12 +38,60 @@ def call_api():
                             "url": f"data:image/jpeg;base64,{base64_image}",
                         },
                     },
-                    # {
-                    #     "type": "image_url",
-                    #     "image_url": {
-                    #         "url": f"data:image/jpeg;base64,{base64_image}",
-                    #     },
-                    # },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                        },
+                    },
 #                     {
 #                         "type": "text",
 #                         "text": """
