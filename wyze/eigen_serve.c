@@ -87,7 +87,6 @@ int main(int argc, char *argv[]) {
              "--log-level info "
              "--quantization fp8 "
              "--enable-broadcast-mm-inputs-process "
-             "--enable-torch-compile "
              "--enable-multimodal "
              "%s "
              "2>&1 | tee -a \"%s\"",
