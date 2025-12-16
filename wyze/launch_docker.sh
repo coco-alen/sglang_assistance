@@ -3,13 +3,13 @@
 # ======================
 # Default configuration
 # ======================
-IMAGE_NAME="eigenai/wyze:251028"
+IMAGE_NAME="wyze:251216"
 CONTAINER_NAME="eigen_wyze"
-SCRIPT_PATH="./eigen_serve"
+SCRIPT_PATH="./eigen-serve"
 CUDA_DEVICES="0"
 MODEL_PATH="OpenGVLab/InternVL3_5-8B-Flash"
 PORT="23333"
-CACHE_DIR="/cache/huggingface"
+CACHE_DIR="/data/home/yipin/.cache/huggingface"
 
 # ======================
 # Help info
@@ -135,6 +135,79 @@ docker run -d \
     $DOCKER_CACHE_ARG \
     "$IMAGE_NAME" \
     bash -c "$(printf '%q ' "${CMD[@]}")"
+
+# ======================
+# Wait for server ready
+# ======================
+echo "⏳ Waiting for server to be ready on port $PORT ..."
+
+MAX_RETRY=100      # max 100 retries
+SLEEP_INTERVAL=5  # sleep 5 seconds between retries
+
+READY=0
+for ((i=1; i<=MAX_RETRY; i++)); do
+    if docker exec "$CONTAINER_NAME" bash -c "nc -z localhost $PORT" >/dev/null 2>&1; then
+        READY=1
+        echo "✅ Server is ready (port $PORT is listening)"
+        break
+    fi
+    echo "  [$i/$MAX_RETRY] Server not ready yet..."
+    sleep $SLEEP_INTERVAL
+done
+
+if [[ "$READY" -ne 1 ]]; then
+    echo "❌ Server did not become ready within timeout"
+    exit 1
+fi
+
+# ======================
+# Run eigen-bench inside container
+# ======================
+echo "🚀 Running eigen-bench with server health monitoring..."
+
+docker exec "$CONTAINER_NAME" bash -c '
+set -e
+
+PORT='"$PORT"'
+BENCH_CMD="./eigen-bench -n 80 -i 80"
+
+echo "[bench] starting eigen-bench..."
+$BENCH_CMD &
+BENCH_PID=$!
+
+while kill -0 $BENCH_PID 2>/dev/null; do
+    if ! nc -z localhost $PORT >/dev/null 2>&1; then
+        echo "[error] server port $PORT is down during eigen-bench"
+        kill -9 $BENCH_PID 2>/dev/null || true
+        exit 100
+    fi
+    sleep 1
+done
+
+wait $BENCH_PID
+'
+BENCH_EXIT_CODE=$?
+
+if [[ "$BENCH_EXIT_CODE" -eq 0 ]]; then
+    echo "✅ Server passed eigen-bench health check"
+    echo "🎉 Server configuration looks GOOD"
+elif [[ "$BENCH_EXIT_CODE" -eq 100 ]]; then
+    echo "❌ Server crashed or port went down during eigen-bench"
+    echo ""
+    echo "👉 This usually indicates an invalid server configuration."
+    echo "👉 Suggested actions:"
+    echo "   - Reduce --mem-fraction-static"
+    echo ""
+    echo "🔍 Check logs:"
+    echo "   docker logs -f $CONTAINER_NAME"
+    exit 1
+else
+    echo "❌ eigen-bench failed with exit code $BENCH_EXIT_CODE"
+    echo "👉 Server may be up, but inference is unstable"
+    echo "👉 Suggested actions:"
+    echo "   - Reduce --mem-fraction-static"
+    exit 1
+fi
 
 echo "✅ Container started with name: $CONTAINER_NAME"
 echo "🪶 View logs: docker logs -f $CONTAINER_NAME"
