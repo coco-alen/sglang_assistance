@@ -1,0 +1,1 @@
+gcc eigen_serve.c -O2 -o eigen-serve

@@ -47,15 +47,14 @@ python -m sglang.launch_server \
    --model-path "$MODEL_PATH" \
    --chat-template internvl-2-5 \
    --port "$PORT" \
-   --mem-fraction-static 0.8 \
+   --mem-fraction-static 0.65 \
    --mm-attention-backend fa3 \
    --attention-backend fa3 \
    --log-level info \
    --quantization fp8 \
+   --enable-broadcast-mm-inputs-process \
    --enable-torch-compile \
    --enable-multimodal
-
-
 
 LOG_FILE="/logs/start_server_$(date +%Y%m%d_%H%M%S).log"
 mkdir -p /logs
