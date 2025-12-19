@@ -15,10 +15,10 @@ export TORCHINDUCTOR_CACHE_DIR=~/.triton
    # --model-path /data/home/yipin/project/sglang-dev/sglang_assistance/InterVL3_5-8B-Flash \
 
 CUDA_VISIBLE_DEVICES=4 python -m sglang.launch_server \
-   --model-path /sgl-workspace/sglang/sglang_assistance/InterVL3_5-8B-Flash \
+   --model-path OpenGVLab/InternVL3_5-8B-Flash \
    --chat-template internvl-2-5 \
    --port 23333 \
-   --mem-fraction-static 0.8 \
+   --mem-fraction-static 0.35 \
    --mm-attention-backend fa3 \
    --attention-backend fa3 \
    --log-level info \
